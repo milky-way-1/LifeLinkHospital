@@ -1,9 +1,16 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.LifeLinkHospitals" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<resources>
+    <style name="Theme.LifeLinkHospitals" parent="Theme.MaterialComponents.Light.DarkActionBar">
+        <item name="colorPrimary">@color/surgical_green</item>
+        <item name="colorPrimaryVariant">@color/surgical_green_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/surgical_green</item>
+        <item name="colorSecondaryVariant">@color/surgical_green_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/surgical_green</item>
     </style>
 
-    <style name="Theme.LifeLinkHospitals" parent="Base.Theme.LifeLinkHospitals" />
+    <style name="Theme.LifeLinkHospitals.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 </resources>

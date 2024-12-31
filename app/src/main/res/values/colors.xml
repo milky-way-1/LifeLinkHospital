@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="surgical_green">#00A172</color>
+    <color name="surgical_green_light">#4CD3A5</color>
+    <color name="surgical_green_dark">#007F59</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="grey">#757575</color>
 </resources>
