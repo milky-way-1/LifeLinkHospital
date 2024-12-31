@@ -1,19 +1,30 @@
 package com.hospital.lifelinkhospitals;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Patterns;
 import android.view.View;
+import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.hospital.lifelinkhospitals.Util.DialogUtils;
+import com.hospital.lifelinkhospitals.Util.MessageUtils;
 import com.hospital.lifelinkhospitals.Util.SessionManager;
+import com.hospital.lifelinkhospitals.api.RetrofitClient;
+import com.hospital.lifelinkhospitals.model.MessageResponse;
+import com.hospital.lifelinkhospitals.model.SignupRequest;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class Signup extends AppCompatActivity {
 
@@ -23,6 +34,9 @@ public class Signup extends AppCompatActivity {
     private MaterialButton signupButton;
     private View loginText;
     private SessionManager sessionManager;
+
+    private TextView statusMessage;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +54,7 @@ public class Signup extends AppCompatActivity {
         passwordInput = findViewById(R.id.passwordInput);
         signupButton = findViewById(R.id.signupButton);
         loginText = findViewById(R.id.loginText);
+        statusMessage = findViewById(R.id.statusMessage);
     }
 
     private void setupClickListeners() {
@@ -62,25 +77,45 @@ public class Signup extends AppCompatActivity {
         // Show loading state
         signupButton.setEnabled(false);
         signupButton.setText("Creating Account...");
+        MessageUtils.hideMessage(statusMessage);
 
-        // TODO: Implement your signup API call here
-        // For demonstration, we'll just simulate a delay
-        new android.os.Handler().postDelayed(() -> {
-            // On successful signup:
-            sessionManager.saveUserSession(
-                    "dummy_token",  // token
-                    email,         // email
-                    "user_" + System.currentTimeMillis(),  // userId
-                    fullName      // userName
-            );
-            startActivity(new Intent(Signup.this, Dashboard.class));
-            finish();
+        SignupRequest request = new SignupRequest(fullName, email, password, "HOSPITAL");
 
-            // On failure:
-            // signupButton.setEnabled(true);
-            // signupButton.setText("Sign Up");
-            // Toast.makeText(this, "Signup failed", Toast.LENGTH_SHORT).show();
-        }, 2000);
+        RetrofitClient.getInstance()
+                .getApiService()
+                .signup(request)
+                .enqueue(new Callback<MessageResponse>() {
+                    @Override
+                    public void onResponse(Call<MessageResponse> call, Response<MessageResponse> response) {
+                        signupButton.setEnabled(true);
+                        signupButton.setText("Sign Up");
+
+                        if (response.isSuccessful() && response.body() != null) {
+                            MessageResponse messageResponse = response.body();
+                            MessageUtils.showSuccess(statusMessage, messageResponse.getMessage());
+
+                            // Wait for 2 seconds before navigating
+                            new Handler().postDelayed(() -> {
+                                startActivity(new Intent(Signup.this, Login.class));
+                                finish();
+                            }, 2000);
+                        } else {
+                            try {
+                                String errorBody = response.errorBody().string();
+                                MessageUtils.showError(statusMessage, errorBody);
+                            } catch (Exception e) {
+                                MessageUtils.showError(statusMessage, "Signup failed");
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<MessageResponse> call, Throwable t) {
+                        signupButton.setEnabled(true);
+                        signupButton.setText("Sign Up");
+                        MessageUtils.showError(statusMessage, "Network error: " + t.getMessage());
+                    }
+                });
     }
 
     private boolean validateInputs(String fullName, String email, String password) {
