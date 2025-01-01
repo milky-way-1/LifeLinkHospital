@@ -27,10 +27,14 @@ public interface ApiService {
     Call<MessageResponse> signup(@Body SignupRequest request);
 
     @GET("api/hospitals/{hospitalId}")
-    Call<Hospital> getHospitalDetails(@Path("hospitalId") String hospitalId);
+    Call<Hospital> getHospitalDetails(
+            @Header("Authorization") String token,
+            @Path("hospitalId") String hospitalId);
 
     @GET("api/hospitals/{hospitalId}/incoming-patients")
-    Call<List<IncomingPatient>> getIncomingPatients(@Path("hospitalId") String hospitalId);
+    Call<List<IncomingPatient>> getIncomingPatients(
+            @Header("Authorization") String token,
+            @Path("hospitalId") String hospitalId);
 
     @POST("api/hospitals/register")
     Call<ApiResponse<Hospital>> registerHospital(

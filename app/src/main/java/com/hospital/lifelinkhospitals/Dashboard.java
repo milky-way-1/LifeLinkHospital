@@ -11,7 +11,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -68,7 +67,7 @@ public class Dashboard extends AppCompatActivity {
         emptyStateLayout = findViewById(R.id.emptyStateLayout);
 
         registerHospitalButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, com.hospital.lifelinkhospitals.activities.HospitalRegistrationActivity.class));
+            startActivity(new Intent(this, HospitalRegistrationActivity.class));
         });
     }
 
@@ -86,47 +85,68 @@ public class Dashboard extends AppCompatActivity {
     private void loadHospitalData() {
         showLoading();
         String hospitalId = sessionManager.getUserId();
+        String token = "Bearer " + sessionManager.getToken();
 
         if (hospitalId == null) {
             showUnregisteredState();
             return;
         }
 
-        apiService.getHospitalDetails(hospitalId).enqueue(new Callback<Hospital>() {
-            @Override
-            public void onResponse(Call<Hospital> call, Response<Hospital> response) {
-                hideLoading();
-                if (response.isSuccessful() && response.body() != null) {
-                    updateHospitalInfo(response.body());
-                    loadIncomingPatients();
-                } else {
-                    showError("Failed to load hospital details");
-                }
-            }
+        RetrofitClient.getInstance()
+                .getApiService()
+                .getHospitalDetails(token, hospitalId)
+                .enqueue(new Callback<Hospital>() {
+                    @Override
+                    public void onResponse(Call<Hospital> call, Response<Hospital> response) {
+                        hideLoading();
+                        if (response.isSuccessful() && response.body() != null) {
+                            updateHospitalInfo(response.body());
+                            loadIncomingPatients();
+                        } else {
+                            if (response.code() == 404) {
+                                // Hospital not found
+                                showUnregisteredState();
+                            } else {
+                                showError("Failed to load hospital details");
+                            }
+                        }
+                    }
 
-            @Override
-            public void onFailure(Call<Hospital> call, Throwable t) {
-                hideLoading();
-                showError("Network error: " + t.getMessage());
-            }
-        });
+                    @Override
+                    public void onFailure(Call<Hospital> call, Throwable t) {
+                        hideLoading();
+                        showError("Network error: " + t.getMessage());
+                    }
+                });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Reload data when returning from registration
+        loadHospitalData();
     }
 
     private void loadIncomingPatients() {
         String hospitalId = sessionManager.getUserId();
-        apiService.getIncomingPatients(hospitalId).enqueue(new Callback<List<IncomingPatient>>() {
-            @Override
-            public void onResponse(Call<List<IncomingPatient>> call, Response<List<IncomingPatient>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    updateIncomingPatientsList(response.body());
-                }
-            }
+        String token = "Bearer " + sessionManager.getToken();
 
-            @Override
-            public void onFailure(Call<List<IncomingPatient>> call, Throwable t) {
-                showError("Failed to load incoming patients");
-            }
-        });
+        RetrofitClient.getInstance()
+                .getApiService()
+                .getIncomingPatients(token, hospitalId)
+                .enqueue(new Callback<List<IncomingPatient>>() {
+                    @Override
+                    public void onResponse(Call<List<IncomingPatient>> call, Response<List<IncomingPatient>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            updateIncomingPatientsList(response.body());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<IncomingPatient>> call, Throwable t) {
+                        showError("Failed to load incoming patients");
+                    }
+                });
     }
 
     private void updateHospitalInfo(Hospital hospital) {
