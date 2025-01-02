@@ -6,19 +6,19 @@ import java.util.ArrayList;
 
 public class HospitalRegistrationRequest {
 
-    @SerializedName("hospital_name")
+    @SerializedName("hospitalName")
     private String hospitalName;
 
-    @SerializedName("hospital_type")
+    @SerializedName("hospitalType")
     private String hospitalType;
 
-    @SerializedName("license_number")
+    @SerializedName("licenseNumber")
     private String licenseNumber;
 
-    @SerializedName("year_established")
+    @SerializedName("yearEstablished")
     private String yearEstablished;
 
-    @SerializedName("phone_number")
+    @SerializedName("phoneNumber")
     private String phoneNumber;
 
     @SerializedName("address")
@@ -30,7 +30,7 @@ public class HospitalRegistrationRequest {
     @SerializedName("state")
     private String state;
 
-    @SerializedName("pin_code")
+    @SerializedName("pinCode")
     private String pinCode;
 
     @SerializedName("latitude")
@@ -39,19 +39,19 @@ public class HospitalRegistrationRequest {
     @SerializedName("longitude")
     private double longitude;
 
-    @SerializedName("total_beds")
+    @SerializedName("totalBeds")
     private int totalBeds;
 
-    @SerializedName("icu_beds")
+    @SerializedName("icuBeds")
     private int icuBeds;
 
-    @SerializedName("emergency_beds")
+    @SerializedName("emergencyBeds")
     private int emergencyBeds;
 
-    @SerializedName("has_ambulance_service")
+    @SerializedName("hasAmbulanceService")
     private boolean hasAmbulanceService;
 
-    @SerializedName("has_emergency_service")
+    @SerializedName("hasEmergencyService")
     private boolean hasEmergencyService;
 
     @SerializedName("departments")

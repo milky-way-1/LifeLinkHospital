@@ -104,7 +104,6 @@ public class Dashboard extends AppCompatActivity {
                             loadIncomingPatients();
                         } else {
                             if (response.code() == 404) {
-                                // Hospital not found
                                 showUnregisteredState();
                             } else {
                                 showError("Failed to load hospital details");

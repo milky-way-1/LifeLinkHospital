@@ -18,6 +18,7 @@ import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface ApiService {
     @POST("api/auth/login")
@@ -26,19 +27,21 @@ public interface ApiService {
     @POST("api/auth/signup")
     Call<MessageResponse> signup(@Body SignupRequest request);
 
-    @GET("api/hospitals/{hospitalId}")
+    @GET("api/hospital/{hospitalId}")
     Call<Hospital> getHospitalDetails(
             @Header("Authorization") String token,
             @Path("hospitalId") String hospitalId);
 
-    @GET("api/hospitals/{hospitalId}/incoming-patients")
+    @GET("api/hospital/{hospitalId}/incoming-patients")
     Call<List<IncomingPatient>> getIncomingPatients(
             @Header("Authorization") String token,
             @Path("hospitalId") String hospitalId);
 
-    @POST("api/hospitals/register")
+    @POST("api/hospital/register")
     Call<ApiResponse<Hospital>> registerHospital(
             @Header("Authorization") String token,
             @Body HospitalRegistrationRequest request);
+
+
 
 }
