@@ -2,12 +2,14 @@ package com.hospital.lifelinkhospitals.api;
 
 
 import com.hospital.lifelinkhospitals.model.ApiResponse;
+import com.hospital.lifelinkhospitals.model.BloodRequest;
 import com.hospital.lifelinkhospitals.model.Hospital;
 import com.hospital.lifelinkhospitals.model.HospitalRegistrationRequest;
 import com.hospital.lifelinkhospitals.model.IncomingPatient;
 import com.hospital.lifelinkhospitals.model.JwtResponse;
 import com.hospital.lifelinkhospitals.model.LoginRequest;
 import com.hospital.lifelinkhospitals.model.MessageResponse;
+import com.hospital.lifelinkhospitals.model.PatientDetails;
 import com.hospital.lifelinkhospitals.model.SignupRequest;
 
 import java.util.List;
@@ -48,6 +50,16 @@ public interface ApiService {
             @Path("hospitalId") String hospitalId
     );
 
+    @GET("api/hospital/{userId}")
+    Call<PatientDetails> getPatientDetails(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
 
+    @POST("api/blood-requests")
+    Call<BloodRequest> createBloodRequest(
+            @Header("Authorization") String token,
+            @Body BloodRequest requestDTO
+    );
 
 }

@@ -32,7 +32,33 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class Dashboard extends AppCompatActivity {
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.button.MaterialButton;
+import com.hospital.lifelinkhospitals.Util.SessionManager;
+import com.hospital.lifelinkhospitals.api.RetrofitClient;
+import com.hospital.lifelinkhospitals.model.Hospital;
+import com.hospital.lifelinkhospitals.model.IncomingPatient;
+
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class Dashboard extends AppCompatActivity implements IncomingPatientsAdapter.OnPatientClickListener {
     private View registeredHospitalLayout;
     private View unregisteredHospitalLayout;
     private ProgressBar hospitalStatusLoading;
@@ -43,9 +69,8 @@ public class Dashboard extends AppCompatActivity {
     private RecyclerView incomingPatientsRecyclerView;
     private View emptyStateLayout;
 
-    private ApiService apiService;
     private SessionManager sessionManager;
-    private IncomingPatientsAdapter patientsAdapter;
+    private com.hospital.lifelinkhospitals.IncomingPatientsAdapter patientsAdapter;
     private static final int POLLING_INTERVAL = 10000; // 10 seconds
     private Handler bookingCheckHandler;
     private Runnable bookingCheckRunnable;
@@ -74,30 +99,19 @@ public class Dashboard extends AppCompatActivity {
         incomingPatientsRecyclerView = findViewById(R.id.incomingPatientsRecyclerView);
         emptyStateLayout = findViewById(R.id.emptyStateLayout);
 
-        registerHospitalButton.setOnClickListener(v -> {
-            startActivity(new Intent(this, HospitalRegistrationActivity.class));
-        });
-    }
-
-    private void startPolling() {
-        if (!isPollingActive) {
-            isPollingActive = true;
-            bookingCheckHandler.post(bookingCheckRunnable);
-            Log.d("Dashboard", "Started polling for new bookings");
-        }
-    }
-
-    private void stopPolling() {
-        isPollingActive = false;
-        if (bookingCheckHandler != null) {
-            bookingCheckHandler.removeCallbacks(bookingCheckRunnable);
-            Log.d("Dashboard", "Stopped polling for new bookings");
-        }
+        registerHospitalButton.setOnClickListener(v ->
+                startActivity(new Intent(this, HospitalRegistrationActivity.class))
+        );
     }
 
     private void setupServices() {
-        apiService = RetrofitClient.getInstance().getApiService();
         sessionManager = new SessionManager(this);
+    }
+
+    private void setupRecyclerView() {
+        patientsAdapter = new IncomingPatientsAdapter(this); // Pass the click listener
+        incomingPatientsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        incomingPatientsRecyclerView.setAdapter(patientsAdapter);
     }
 
     private void setupBookingPolling() {
@@ -142,12 +156,6 @@ public class Dashboard extends AppCompatActivity {
                 });
     }
 
-    private void setupRecyclerView() {
-        patientsAdapter = new IncomingPatientsAdapter(new ArrayList<>());
-        incomingPatientsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        incomingPatientsRecyclerView.setAdapter(patientsAdapter);
-    }
-
     private void loadHospitalData() {
         showLoading();
         String hospitalId = sessionManager.getUserId();
@@ -185,26 +193,27 @@ public class Dashboard extends AppCompatActivity {
                 });
     }
 
-    private void loadIncomingPatients() {
-        String hospitalId = sessionManager.getUserId();
-        String token = "Bearer " + sessionManager.getToken();
+    @Override
+    public void onPatientClick(IncomingPatient patient) {
+        Intent intent = new Intent(this, PatientDetailsActivity.class);
+        intent.putExtra("patient_id", patient.getId());
+        startActivity(intent);
+    }
 
-        RetrofitClient.getInstance()
-                .getApiService()
-                .getIncomingPatients(token, hospitalId)
-                .enqueue(new Callback<List<IncomingPatient>>() {
-                    @Override
-                    public void onResponse(Call<List<IncomingPatient>> call, Response<List<IncomingPatient>> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            updateIncomingPatientsList(response.body());
-                        }
-                    }
+    private void startPolling() {
+        if (!isPollingActive) {
+            isPollingActive = true;
+            bookingCheckHandler.post(bookingCheckRunnable);
+            Log.d("Dashboard", "Started polling for new bookings");
+        }
+    }
 
-                    @Override
-                    public void onFailure(Call<List<IncomingPatient>> call, Throwable t) {
-                        showError("Failed to load incoming patients");
-                    }
-                });
+    private void stopPolling() {
+        isPollingActive = false;
+        if (bookingCheckHandler != null) {
+            bookingCheckHandler.removeCallbacks(bookingCheckRunnable);
+            Log.d("Dashboard", "Stopped polling for new bookings");
+        }
     }
 
     private void updateHospitalInfo(Hospital hospital) {
@@ -215,19 +224,11 @@ public class Dashboard extends AppCompatActivity {
         hospitalAddressText.setText(hospital.getAddress());
         availableBedsText.setText(String.format("Available Beds: %d", hospital.getAvailableBeds()));
 
-        // Start polling only if hospital is registered
         startPolling();
     }
 
-    private void showUnregisteredState() {
-        hideLoading();
-        registeredHospitalLayout.setVisibility(View.GONE);
-        unregisteredHospitalLayout.setVisibility(View.VISIBLE);
-        stopPolling(); // Stop polling if hospital is not registered
-    }
-
     private void updateIncomingPatientsList(List<IncomingPatient> patients) {
-        if (patients.isEmpty()) {
+        if (patients == null || patients.isEmpty()) {
             emptyStateLayout.setVisibility(View.VISIBLE);
             incomingPatientsRecyclerView.setVisibility(View.GONE);
         } else {
@@ -245,6 +246,13 @@ public class Dashboard extends AppCompatActivity {
 
     private void hideLoading() {
         hospitalStatusLoading.setVisibility(View.GONE);
+    }
+
+    private void showUnregisteredState() {
+        hideLoading();
+        registeredHospitalLayout.setVisibility(View.GONE);
+        unregisteredHospitalLayout.setVisibility(View.VISIBLE);
+        stopPolling();
     }
 
     private void showError(String message) {
@@ -268,5 +276,44 @@ public class Dashboard extends AppCompatActivity {
     protected void onDestroy() {
         stopPolling();
         super.onDestroy();
+    }
+    private void loadIncomingPatients() {
+        String hospitalId = sessionManager.getUserId();
+        String token = "Bearer " + sessionManager.getToken();
+
+        if (hospitalId == null || token == null) {
+            showError("Session expired. Please login again.");
+            return;
+        }
+
+        RetrofitClient.getInstance()
+                .getApiService()
+                .getIncomingPatients(token, hospitalId)
+                .enqueue(new Callback<List<IncomingPatient>>() {
+                    @Override
+                    public void onResponse(Call<List<IncomingPatient>> call, Response<List<IncomingPatient>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            updateIncomingPatientsList(response.body());
+                        } else {
+                            Log.e("Dashboard", "Failed to load incoming patients. Code: " + response.code());
+                            if (response.code() == 401) {
+                                showError("Session expired. Please login again.");
+                                // Optionally: Handle logout or session expiry
+                            } else {
+                                showError("Failed to load incoming patients");
+                            }
+                            // Show empty state when there's an error
+                            updateIncomingPatientsList(null);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<IncomingPatient>> call, Throwable t) {
+                        Log.e("Dashboard", "Network error loading incoming patients", t);
+                        showError("Network error: " + t.getMessage());
+                        // Show empty state when there's a network error
+                        updateIncomingPatientsList(null);
+                    }
+                });
     }
 }
