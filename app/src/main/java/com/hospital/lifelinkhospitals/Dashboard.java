@@ -6,6 +6,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -43,6 +46,10 @@ public class Dashboard extends AppCompatActivity {
     private ApiService apiService;
     private SessionManager sessionManager;
     private IncomingPatientsAdapter patientsAdapter;
+    private static final int POLLING_INTERVAL = 10000; // 10 seconds
+    private Handler bookingCheckHandler;
+    private Runnable bookingCheckRunnable;
+    private boolean isPollingActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +59,7 @@ public class Dashboard extends AppCompatActivity {
         initializeViews();
         setupServices();
         setupRecyclerView();
+        setupBookingPolling();
         loadHospitalData();
     }
 
@@ -71,9 +79,67 @@ public class Dashboard extends AppCompatActivity {
         });
     }
 
+    private void startPolling() {
+        if (!isPollingActive) {
+            isPollingActive = true;
+            bookingCheckHandler.post(bookingCheckRunnable);
+            Log.d("Dashboard", "Started polling for new bookings");
+        }
+    }
+
+    private void stopPolling() {
+        isPollingActive = false;
+        if (bookingCheckHandler != null) {
+            bookingCheckHandler.removeCallbacks(bookingCheckRunnable);
+            Log.d("Dashboard", "Stopped polling for new bookings");
+        }
+    }
+
     private void setupServices() {
         apiService = RetrofitClient.getInstance().getApiService();
         sessionManager = new SessionManager(this);
+    }
+
+    private void setupBookingPolling() {
+        bookingCheckHandler = new Handler(Looper.getMainLooper());
+        bookingCheckRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (isPollingActive) {
+                    checkForNewBookings();
+                    bookingCheckHandler.postDelayed(this, POLLING_INTERVAL);
+                }
+            }
+        };
+    }
+
+    private void checkForNewBookings() {
+        String hospitalId = sessionManager.getUserId();
+        String token = "Bearer " + sessionManager.getToken();
+
+        if (hospitalId == null || token == null) {
+            stopPolling();
+            return;
+        }
+
+        RetrofitClient.getInstance()
+                .getApiService()
+                .getHospitalBookings(token, hospitalId)
+                .enqueue(new Callback<List<IncomingPatient>>() {
+                    @Override
+                    public void onResponse(Call<List<IncomingPatient>> call, Response<List<IncomingPatient>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            updateIncomingPatientsList(response.body());
+                        } else {
+                            Log.e("Dashboard", "Failed to fetch bookings: " + response.code());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<IncomingPatient>> call, Throwable t) {
+                        Log.e("Dashboard", "Network error while fetching bookings", t);
+                    }
+                });
     }
 
     private void setupRecyclerView() {
@@ -119,13 +185,6 @@ public class Dashboard extends AppCompatActivity {
                 });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Reload data when returning from registration
-        loadHospitalData();
-    }
-
     private void loadIncomingPatients() {
         String hospitalId = sessionManager.getUserId();
         String token = "Bearer " + sessionManager.getToken();
@@ -155,6 +214,16 @@ public class Dashboard extends AppCompatActivity {
         hospitalNameText.setText(hospital.getName());
         hospitalAddressText.setText(hospital.getAddress());
         availableBedsText.setText(String.format("Available Beds: %d", hospital.getAvailableBeds()));
+
+        // Start polling only if hospital is registered
+        startPolling();
+    }
+
+    private void showUnregisteredState() {
+        hideLoading();
+        registeredHospitalLayout.setVisibility(View.GONE);
+        unregisteredHospitalLayout.setVisibility(View.VISIBLE);
+        stopPolling(); // Stop polling if hospital is not registered
     }
 
     private void updateIncomingPatientsList(List<IncomingPatient> patients) {
@@ -166,12 +235,6 @@ public class Dashboard extends AppCompatActivity {
             incomingPatientsRecyclerView.setVisibility(View.VISIBLE);
             patientsAdapter.updatePatients(patients);
         }
-    }
-
-    private void showUnregisteredState() {
-        hideLoading();
-        registeredHospitalLayout.setVisibility(View.GONE);
-        unregisteredHospitalLayout.setVisibility(View.VISIBLE);
     }
 
     private void showLoading() {
@@ -186,5 +249,24 @@ public class Dashboard extends AppCompatActivity {
 
     private void showError(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadHospitalData();
+        startPolling();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopPolling();
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopPolling();
+        super.onDestroy();
     }
 }

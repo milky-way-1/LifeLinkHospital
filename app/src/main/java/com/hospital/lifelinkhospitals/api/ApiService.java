@@ -42,6 +42,12 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Body HospitalRegistrationRequest request);
 
+    @GET("api/bookings/hospital/{hospitalId}")
+    Call<List<IncomingPatient>> getHospitalBookings(
+            @Header("Authorization") String token,
+            @Path("hospitalId") String hospitalId
+    );
+
 
 
 }
