@@ -11,9 +11,12 @@ import com.hospital.lifelinkhospitals.model.LoginRequest;
 import com.hospital.lifelinkhospitals.model.MessageResponse;
 import com.hospital.lifelinkhospitals.model.PatientDetails;
 import com.hospital.lifelinkhospitals.model.SignupRequest;
+import com.hospital.lifelinkhospitals.model.TokenRefreshRequest;
+import com.hospital.lifelinkhospitals.model.TokenRefreshResponse;
 
 import java.util.List;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -50,7 +53,7 @@ public interface ApiService {
             @Path("hospitalId") String hospitalId
     );
 
-    @GET("api/hospital/{userId}")
+    @GET("api/hospital/{userId}/patient")
     Call<PatientDetails> getPatientDetails(
             @Header("Authorization") String token,
             @Path("userId") String userId
@@ -61,5 +64,12 @@ public interface ApiService {
             @Header("Authorization") String token,
             @Body BloodRequest requestDTO
     );
+
+    @GET("api/hosptial/hospital-id/{userId}")
+    Call<Hospital> getHospitalId(
+            @Header("Authorization") String token,
+            @Path("userId") String userId
+    );
+
 
 }
