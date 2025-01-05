@@ -65,11 +65,12 @@ public interface ApiService {
             @Body BloodRequest requestDTO
     );
 
-    @GET("api/hosptial/hospital-id/{userId}")
+    @GET("api/hospital/hospital-id/{userId}")
     Call<Hospital> getHospitalId(
-            @Header("Authorization") String token,
-            @Path("userId") String userId
-    );
+            @Path("userId") String userId,
+            @Header("Authorization") String token);
+
+
 
 
 }

@@ -88,30 +88,47 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
     }
 
     private void initializeViews() {
-        // Initialize layouts
-        registeredHospitalLayout = findViewById(R.id.registeredHospitalLayout);
-        unregisteredHospitalLayout = findViewById(R.id.unregisteredHospitalLayout);
-        hospitalStatusLoading = findViewById(R.id.hospitalStatusLoading);
-        emptyStateLayout = findViewById(R.id.emptyStateLayout);
+        try {
+            Toast.makeText(this, "1. Starting view initialization", Toast.LENGTH_SHORT).show();
 
-        // Initialize text views
-        hospitalNameText = findViewById(R.id.hospitalNameText);
-        hospitalAddressText = findViewById(R.id.hospitalAddressText);
-        availableBedsText = findViewById(R.id.availableBedsText);
+            // Initialize layouts
+            registeredHospitalLayout = findViewById(R.id.registeredHospitalLayout);
+            unregisteredHospitalLayout = findViewById(R.id.unregisteredHospitalLayout);
+            hospitalStatusLoading = findViewById(R.id.hospitalStatusLoading);
+            emptyStateLayout = findViewById(R.id.emptyStateLayout);
 
-        // Initialize buttons
-        registerHospitalButton = findViewById(R.id.registerHospitalButton);
-        registerHospitalButton.setOnClickListener(v ->
-                startActivity(new Intent(this, HospitalRegistrationActivity.class))
-        );
+            // Initialize text views - Note these are inside registeredHospitalLayout
+            if (registeredHospitalLayout != null) {
+                hospitalNameText = registeredHospitalLayout.findViewById(R.id.hospitalNameText);
+                hospitalAddressText = registeredHospitalLayout.findViewById(R.id.hospitalAddressText);
+                availableBedsText = registeredHospitalLayout.findViewById(R.id.availableBedsText);
+            }
 
-        // Initialize RecyclerView
-        incomingPatientsRecyclerView = findViewById(R.id.incomingPatientsRecyclerView);
+            // Initialize button - Note this is inside unregisteredHospitalLayout
+            if (unregisteredHospitalLayout != null) {
+                registerHospitalButton = unregisteredHospitalLayout.findViewById(R.id.registerHospitalButton);
+                if (registerHospitalButton != null) {
+                    registerHospitalButton.setOnClickListener(v -> {
+                        Intent intent = new Intent(Dashboard.this, HospitalRegistrationActivity.class);
+                        startActivity(intent);
+                    });
+                }
+            }
 
-        // Initialize SwipeRefreshLayout
-        swipeRefresh = findViewById(R.id.swipeRefresh);
-        swipeRefresh.setOnRefreshListener(this::refreshData);
-        swipeRefresh.setColorSchemeResources(R.color.primary);
+            // Initialize RecyclerView and SwipeRefreshLayout
+            swipeRefresh = findViewById(R.id.swipeRefresh);
+            if (swipeRefresh != null) {
+                swipeRefresh.setOnRefreshListener(this::refreshData);
+                swipeRefresh.setColorSchemeResources(R.color.primary);
+            }
+
+            incomingPatientsRecyclerView = findViewById(R.id.incomingPatientsRecyclerView);
+
+            Toast.makeText(this, "2. View initialization complete", Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Error initializing views: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void setupServices() {
@@ -126,47 +143,127 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
 
     private void refreshData() {
         loadHospitalData();
-        loadIncomingPatients();
+        String hospitalId = sessionManager.getHospitalId();
+        if(hospitalId != null) loadIncomingPatients(hospitalId);
     }
 
     private void loadHospitalData() {
-        showLoading();
-        String token = "Bearer " + sessionManager.getToken();
-        String userId = sessionManager.getUserId();
+        try {
+            showLoading();
+            String token = sessionManager.getToken();
+            String userId = sessionManager.getUserId();
 
-        if (userId == null || token == null) {
-            showUnregisteredState();
-            finishLoading();
-            return;
-        }
+            Toast.makeText(this, "1. Starting loadHospitalData", Toast.LENGTH_SHORT).show();
 
-        RetrofitClient.getInstance()
-                .getApiService()
-                .getHospitalId(token, userId)
-                .enqueue(new Callback<Hospital>() {
-                    @Override
-                    public void onResponse(Call<Hospital> call, Response<Hospital> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            Hospital hospital = response.body();
-                            updateHospitalInfo(hospital);
-                            loadIncomingPatients();
-                        } else {
-                            handleError(response.code());
+            if (userId == null || token == null) {
+                showUnregisteredState();
+                finishLoading();
+                Toast.makeText(this, "2. No token or userId", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Debug info
+            Toast.makeText(this, "3. UserID: " + userId, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "4. Token exists: " + (token != null), Toast.LENGTH_SHORT).show();
+
+            // Ensure token format
+            String authToken = token.startsWith("Bearer ") ? token : "Bearer " + token;
+
+            RetrofitClient.getInstance()
+                    .getApiService()
+                    .getHospitalId(userId, authToken)
+                    .enqueue(new Callback<Hospital>() {
+                        @Override
+                        public void onResponse(Call<Hospital> call, Response<Hospital> response) {
+                            try {
+                                Toast.makeText(Dashboard.this,
+                                        "5. Response code: " + response.code(), Toast.LENGTH_SHORT).show();
+
+                                if (response.isSuccessful() && response.body() != null) {
+                                    Hospital hospital = response.body();
+
+                                    // Debug hospital data
+                                    String debugInfo = String.format(
+                                            "Hospital: %s\nAddress: %s\nBeds: %d",
+                                            hospital.getHospitalName(),
+                                            hospital.getAddress(),
+                                            hospital.getTotalBeds()
+                                    );
+                                    Toast.makeText(Dashboard.this, debugInfo, Toast.LENGTH_LONG).show();
+
+                                    // Save hospital ID
+                                    sessionManager.updateHospitalData(hospital.getId());
+
+                                    // Update UI
+                                    updateHospitalInfo(hospital);
+                                    loadIncomingPatients(hospital.getId());
+                                } else {
+                                    String errorBody = "";
+                                    try {
+                                        if (response.errorBody() != null) {
+                                            errorBody = response.errorBody().string();
+                                        }
+                                    } catch (IOException e) {
+                                        errorBody = "Could not read error body";
+                                    }
+
+                                    final String error = String.format(
+                                            "Error %d: %s",
+                                            response.code(),
+                                            errorBody
+                                    );
+
+                                    runOnUiThread(() -> {
+                                        Toast.makeText(Dashboard.this, error, Toast.LENGTH_LONG).show();
+
+                                        if (response.code() == 404) {
+                                            showUnregisteredState();
+                                        } else if (response.code() == 401) {
+                                            // Only logout for unauthorized
+                                            sessionManager.logout();
+                                        }
+                                    });
+                                }
+                            } catch (Exception e) {
+                                String error = "Error processing response: " + e.getMessage();
+                                Toast.makeText(Dashboard.this, error, Toast.LENGTH_LONG).show();
+                                e.printStackTrace(); // Log the stack trace
+                            } finally {
+                                finishLoading();
+                            }
                         }
-                        finishLoading();
-                    }
 
-                    @Override
-                    public void onFailure(Call<Hospital> call, Throwable t) {
-                        showError("Network error: " + t.getMessage());
-                        finishLoading();
-                    }
-                });
+                        @Override
+                        public void onFailure(Call<Hospital> call, Throwable t) {
+                            String error = "Network error: " + t.getMessage();
+                            Toast.makeText(Dashboard.this, error, Toast.LENGTH_LONG).show();
+                            t.printStackTrace(); // Log the stack trace
+                            showUnregisteredState();
+                            finishLoading();
+                        }
+                    });
+
+        } catch (Exception e) {
+            String error = "Fatal error: " + e.getMessage();
+            Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+            e.printStackTrace(); // Log the stack trace
+            finishLoading();
+        }
     }
 
-    private void loadIncomingPatients() {
+    private void debugViewStates() {
+        String states = String.format(
+                "View States:\nLoading: %s\nRegistered: %s\nUnregistered: %s\nEmpty: %s",
+                hospitalStatusLoading != null ? hospitalStatusLoading.getVisibility() : "null",
+                registeredHospitalLayout != null ? registeredHospitalLayout.getVisibility() : "null",
+                unregisteredHospitalLayout != null ? unregisteredHospitalLayout.getVisibility() : "null",
+                emptyStateLayout != null ? emptyStateLayout.getVisibility() : "null"
+        );
+        Toast.makeText(this, states, Toast.LENGTH_LONG).show();
+    }
+
+    private void loadIncomingPatients(String hospitalId) {
         String token = "Bearer " + sessionManager.getToken();
-        String hospitalId = sessionManager.getUserId();
 
         if (hospitalId == null || token == null) {
             showError("Session expired. Please login again.");
@@ -197,17 +294,61 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
     }
 
     private void updateHospitalInfo(Hospital hospital) {
-        if (hospital == null) return;
+        try {
+            if (hospital == null) {
+                Toast.makeText(this, "Hospital data is null", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-        runOnUiThread(() -> {
-            registeredHospitalLayout.setVisibility(View.VISIBLE);
-            unregisteredHospitalLayout.setVisibility(View.GONE);
+            runOnUiThread(() -> {
+                try {
+                    // Update visibility
+                    if (hospitalStatusLoading != null) {
+                        hospitalStatusLoading.setVisibility(View.GONE);
+                    }
+                    if (registeredHospitalLayout != null) {
+                        registeredHospitalLayout.setVisibility(View.VISIBLE);
+                    }
+                    if (unregisteredHospitalLayout != null) {
+                        unregisteredHospitalLayout.setVisibility(View.GONE);
+                    }
 
-            hospitalNameText.setText(hospital.getName());
-            hospitalAddressText.setText(hospital.getAddress());
-            availableBedsText.setText(String.format("Available Beds: %d",
-                    hospital.getAvailableBeds()));
-        });
+                    // Update text views
+                    if (hospitalNameText != null) {
+                        hospitalNameText.setText(hospital.getHospitalName());
+                    } else {
+                        Toast.makeText(this, "Hospital name view is null", Toast.LENGTH_SHORT).show();
+                    }
+
+                    if (hospitalAddressText != null) {
+                        hospitalAddressText.setText(hospital.getAddress());
+                    } else {
+                        Toast.makeText(this, "Hospital address view is null", Toast.LENGTH_SHORT).show();
+                    }
+
+                    if (availableBedsText != null) {
+                        availableBedsText.setText(String.format("Available Beds: %d",
+                                hospital.getTotalBeds()));
+                    } else {
+                        Toast.makeText(this, "Available beds view is null", Toast.LENGTH_SHORT).show();
+                    }
+
+                    // Enable SwipeRefreshLayout
+                    if (swipeRefresh != null) {
+                        swipeRefresh.setEnabled(true);
+                    }
+
+                } catch (Exception e) {
+                    Toast.makeText(Dashboard.this,
+                            "Error updating UI: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+        } catch (Exception e) {
+            Toast.makeText(this,
+                    "Error in updateHospitalInfo: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private void updateIncomingPatientsList(List<IncomingPatient> patients) {
@@ -222,20 +363,6 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
         });
     }
 
-    private void handleError(int code) {
-        switch (code) {
-            case 401:
-                showError("Session expired. Please login again.");
-                // Handle logout
-                break;
-            case 404:
-                showUnregisteredState();
-                break;
-            default:
-                showError("Error: " + code);
-                break;
-        }
-    }
 
     private void showLoading() {
         runOnUiThread(() -> {
@@ -252,12 +379,54 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
         });
     }
 
+    private void handleError(int code) {
+        try {
+            switch (code) {
+                case 401:
+                    Toast.makeText(this, "Unauthorized - Please login again", Toast.LENGTH_LONG).show();
+                    sessionManager.logout();
+                    break;
+                case 404:
+                    Toast.makeText(this, "Hospital not found", Toast.LENGTH_LONG).show();
+                    showUnregisteredState();
+                    break;
+                default:
+                    Toast.makeText(this, "Error code: " + code, Toast.LENGTH_LONG).show();
+                    break;
+            }
+        } catch (Exception e) {
+            Toast.makeText(this,
+                    "Error handling error code: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
     private void showUnregisteredState() {
-        runOnUiThread(() -> {
-            hospitalStatusLoading.setVisibility(View.GONE);
-            registeredHospitalLayout.setVisibility(View.GONE);
-            unregisteredHospitalLayout.setVisibility(View.VISIBLE);
-        });
+        try {
+            runOnUiThread(() -> {
+                try {
+                    if (hospitalStatusLoading != null) {
+                        hospitalStatusLoading.setVisibility(View.GONE);
+                    }
+                    if (registeredHospitalLayout != null) {
+                        registeredHospitalLayout.setVisibility(View.GONE);
+                    }
+                    if (unregisteredHospitalLayout != null) {
+                        unregisteredHospitalLayout.setVisibility(View.VISIBLE);
+                    }
+                    if (swipeRefresh != null) {
+                        swipeRefresh.setEnabled(false);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(Dashboard.this,
+                            "Error updating UI state: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+        } catch (Exception e) {
+            Toast.makeText(this,
+                    "Error in showUnregisteredState: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showError(String message) {

@@ -34,6 +34,8 @@ public class SessionManager {
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_LAST_LOGIN = "lastLogin";
 
+    private static  final String HOSPITAL_ID = "hospital_id";
+
     private final SharedPreferences prefs;
     private final SharedPreferences.Editor editor;
     private final Context context;
@@ -68,6 +70,10 @@ public class SessionManager {
         editor.putString(KEY_NAME, name);
         editor.putString(KEY_EMAIL, email);
         editor.apply();
+    }
+
+    public void updateHospitalData(String hospitalId){
+        editor.putString(HOSPITAL_ID, hospitalId);
     }
 
     /**
@@ -148,6 +154,8 @@ public class SessionManager {
         String role = getRole();
         return role != null && role.equalsIgnoreCase("ADMIN");
     }
+
+    public String getHospitalId(){return prefs.getString(HOSPITAL_ID, null);}
 
     /**
      * Get user's display name (or email if name is not set)

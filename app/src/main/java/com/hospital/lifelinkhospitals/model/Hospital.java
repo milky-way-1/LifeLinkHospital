@@ -1,29 +1,44 @@
 package com.hospital.lifelinkhospitals.model;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.List;
+
 public class Hospital {
-    @SerializedName("id")
     private String id;
-
-    @SerializedName("name")
-    private String name;
-
-    @SerializedName("address")
+    private String userId;
+    private String hospitalName;
+    private String hospitalType;
+    private String licenseNumber;
+    private String yearEstablished;
+    private String phoneNumber;
     private String address;
+    private String city;
+    private String state;
+    private String pinCode;
+    private double latitude;
+    private double longitude;
+    private int totalBeds;
+    private int icuBeds;
+    private int emergencyBeds;
+    private boolean hasAmbulanceService;
+    private boolean hasEmergencyService;
+    private List<String> departments;
+    private String createdAt;
+    private String updatedAt;
 
-    @SerializedName("availableBeds")
-    private int availableBeds;
+    public String getId(){
+        return this.id;
+    }
 
-    // Getters and Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getHospitalName(){
+        return this.hospitalName;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getAddress(){
+        return this.address;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-
-    public int getAvailableBeds() { return availableBeds; }
-    public void setAvailableBeds(int availableBeds) { this.availableBeds = availableBeds; }
+    public int getTotalBeds(){
+        return this.totalBeds;
+    }
 }
