@@ -1,5 +1,7 @@
 package com.hospital.lifelinkhospitals;
 
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,12 +12,16 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.hospital.lifelinkhospitals.R;
+import com.hospital.lifelinkhospitals.model.EmergencyContactResponse;
 import com.hospital.lifelinkhospitals.model.IncomingPatient;
+import com.hospital.lifelinkhospitals.model.MedicationResponse;
+import com.hospital.lifelinkhospitals.model.PatientResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class IncomingPatientsAdapter extends RecyclerView.Adapter<IncomingPatientsAdapter.ViewHolder> {
+    private static final String TAG = "IncomingPatientsAdapter";
     private List<IncomingPatient> patients = new ArrayList<>();
     private final OnPatientClickListener listener;
 
@@ -46,49 +52,97 @@ public class IncomingPatientsAdapter extends RecyclerView.Adapter<IncomingPatien
         return patients.size();
     }
 
-    public void updatePatients(List<IncomingPatient> newPatients) {
-        this.patients = newPatients != null ? newPatients : new ArrayList<>();
+    public void setPatients(List<IncomingPatient> patients) {
+        this.patients = patients;
         notifyDataSetChanged();
-    }
-
-    public void addPatient(IncomingPatient patient) {
-        if (patient != null) {
-            this.patients.add(0, patient);
-            notifyItemInserted(0);
-        }
-    }
-
-    public void removePatient(String patientId) {
-        for (int i = 0; i < patients.size(); i++) {
-            if (patients.get(i).getId().equals(patientId)) {
-                patients.remove(i);
-                notifyItemRemoved(i);
-                break;
-            }
-        }
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         private final CardView cardView;
-        private final TextView idText;
-        private final TextView userIdText;
+        private final TextView patientName;
+        private final TextView patientAgeGender;
+        private final TextView patientVitals;
+        private final TextView patientPhysicalDetails;
+        private final TextView patientContact;
+        private final TextView emergencyContact;
 
         ViewHolder(View itemView) {
             super(itemView);
             cardView = itemView.findViewById(R.id.patientCard);
-            idText = itemView.findViewById(R.id.patientId);
-            userIdText = itemView.findViewById(R.id.patientUserId);
+            patientName = itemView.findViewById(R.id.patientName);
+            patientAgeGender = itemView.findViewById(R.id.patientAgeGender);
+            patientVitals = itemView.findViewById(R.id.patientVitals);
+            patientPhysicalDetails = itemView.findViewById(R.id.patientPhysicalDetails);
+            patientContact = itemView.findViewById(R.id.patientContact);
+            emergencyContact = itemView.findViewById(R.id.emergencyContact);
         }
 
         void bind(IncomingPatient patient, OnPatientClickListener listener) {
-            idText.setText("ID: " + patient.getId());
-            userIdText.setText("User ID: " + patient.getUserId());
+            if (patient != null) {
+                PatientResponse details = patient.getPatientDetails();
+                if (details != null) {
+                    // Set patient name
+                    patientName.setText(details.getFullName());
 
-            cardView.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onPatientClick(patient);
+                    // Set age and gender
+                    patientAgeGender.setText(String.format("Age: %d | Gender: %s | Blood Type: %s",
+                            details.getAge(),
+                            details.getGender(),
+                            details.getBloodType()));
+
+                    // Set physical details
+                    patientPhysicalDetails.setText(String.format("Height: %.1f cm | Weight: %.1f kg",
+                            details.getHeight(),
+                            details.getWeight()));
+
+                    // Set emergency contact if available
+                    if (details.getEmergencyContacts() != null && !details.getEmergencyContacts().isEmpty()) {
+                        EmergencyContactResponse primaryContact = details.getEmergencyContacts().get(0);
+                        emergencyContact.setText(String.format("Emergency Contact: %s (%s)",
+                                primaryContact.getContactName(),
+                                primaryContact.getPhoneNumber()));
+                        emergencyContact.setVisibility(View.VISIBLE);
+                    } else {
+                        emergencyContact.setVisibility(View.GONE);
+                    }
+
+                    // Set medications if available
+                    if (details.getCurrentMedications() != null && !details.getCurrentMedications().isEmpty()) {
+                        StringBuilder medicationsText = new StringBuilder("Current Medications:\n");
+                        for (MedicationResponse med : details.getCurrentMedications()) {
+                            medicationsText.append(String.format("• %s (%s)\n",
+                                    med.getMedicationName(),
+                                    med.getDosage()));
+                        }
+                        patientVitals.setText(medicationsText.toString());
+                        patientVitals.setVisibility(View.VISIBLE);
+                    } else {
+                        patientVitals.setVisibility(View.GONE);
+                    }
+
+                    // Set allergies if available
+                    if (details.getAllergies() != null && !details.getAllergies().isEmpty()) {
+                        patientContact.setText("Allergies: " + TextUtils.join(", ", details.getAllergies()));
+                        patientContact.setVisibility(View.VISIBLE);
+                    } else {
+                        patientContact.setVisibility(View.GONE);
+                    }
+                } else {
+                    // If no details available, show minimal information
+                    patientName.setText("Patient ID: " + patient.getId());
+                    patientAgeGender.setText("User ID: " + patient.getUserId());
+                    patientVitals.setVisibility(View.GONE);
+                    patientPhysicalDetails.setVisibility(View.GONE);
+                    patientContact.setVisibility(View.GONE);
+                    emergencyContact.setVisibility(View.GONE);
                 }
-            });
+
+                cardView.setOnClickListener(v -> {
+                    if (listener != null) {
+                        listener.onPatientClick(patient);
+                    }
+                });
+            }
         }
     }
 }

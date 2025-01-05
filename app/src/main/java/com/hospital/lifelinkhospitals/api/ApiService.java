@@ -13,6 +13,8 @@ import com.hospital.lifelinkhospitals.model.PatientDetails;
 import com.hospital.lifelinkhospitals.model.SignupRequest;
 import com.hospital.lifelinkhospitals.model.TokenRefreshRequest;
 import com.hospital.lifelinkhospitals.model.TokenRefreshResponse;
+import com.hospital.lifelinkhospitals.model.PatientResponse;
+import com.hospital.lifelinkhospitals.model.InsuranceResponse;
 
 import java.util.List;
 
@@ -70,7 +72,15 @@ public interface ApiService {
             @Path("userId") String userId,
             @Header("Authorization") String token);
 
+    @GET("patient/{userId}")
+    Call<PatientResponse> getPatientDetailsByUserId(
+        @Header("Authorization") String token,
+        @Path("userId") String userId
+    );
 
-
-
+    @GET("patient/insurance/{userId}")
+    Call<List<InsuranceResponse>> getInsurancesByUserId(
+        @Header("Authorization") String token,
+        @Path("userId") String userId
+    );
 }

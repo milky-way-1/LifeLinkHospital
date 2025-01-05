@@ -6,16 +6,28 @@
     android:padding="8dp">
 
     <TextView
-        android:id="@+id/contactName"
+        android:id="@+id/insuranceProvider"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:textStyle="bold"/>
 
     <TextView
-        android:id="@+id/contactPhone"
+        android:id="@+id/policyNumber"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"/>
 
-</LinearLayout>
+    <TextView
+        android:id="@+id/groupNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"/>
+
+    <TextView
+        android:id="@+id/policyHolder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"/>
+
+</LinearLayout> 

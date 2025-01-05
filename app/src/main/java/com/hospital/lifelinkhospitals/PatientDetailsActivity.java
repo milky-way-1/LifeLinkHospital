@@ -1,12 +1,8 @@
 package com.hospital.lifelinkhospitals;
 
-
-import android.app.AlertDialog;
 import android.os.Bundle;
-import android.view.MenuItem;
+import android.text.TextUtils;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,292 +10,214 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
-import com.hospital.lifelinkhospitals.Util.SessionManager;
+import com.hospital.lifelinkhospitals.adapters.EmergencyContactsAdapter;
+import com.hospital.lifelinkhospitals.adapters.MedicationsAdapter;
+import com.hospital.lifelinkhospitals.adapters.PastSurgeriesAdapter;
+import com.hospital.lifelinkhospitals.adapters.InsuranceAdapter;
 import com.hospital.lifelinkhospitals.api.RetrofitClient;
-import com.hospital.lifelinkhospitals.model.BloodRequest;
-import com.hospital.lifelinkhospitals.model.PatientDetails;
-
-
-import java.util.List;
+import com.hospital.lifelinkhospitals.model.PatientResponse;
+import com.hospital.lifelinkhospitals.model.InsuranceResponse;
+import com.hospital.lifelinkhospitals.Util.SessionManager;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class PatientDetailsActivity extends AppCompatActivity {
-    private TextView nameText, ageText, genderText, bloodTypeText, heightText, weightText;
-    private TextView organDonorText;
-    private RecyclerView emergencyContactsRecycler, pastSurgeriesRecycler, medicationsRecycler;
-    private ChipGroup medicalHistoryChips, allergiesChips, dietaryRestrictionsChips, culturalConsiderationsChips;
-    private Button requestBloodButton;
-    private ProgressBar progressBar;
-    private SessionManager sessionManager;
+import java.util.List;
 
-    private EmergencyContactAdapter emergencyContactAdapter;
-    private PastSurgeryAdapter pastSurgeryAdapter;
-    private MedicationAdapter medicationAdapter;
-    private PatientDetails patientDetails;
+public class PatientDetailsActivity extends AppCompatActivity {
+    private TextView patientName, patientAge, patientGender, patientBloodType;
+    private TextView allergiesText, dietaryRestrictionsText;
+    private TextView organDonorText, culturalConsiderationsText;
+    
+    private RecyclerView emergencyContactsRecyclerView;
+    private RecyclerView medicationsRecyclerView;
+    private RecyclerView pastSurgeriesRecyclerView;
+    private RecyclerView insuranceRecyclerView;
+    
+    private EmergencyContactsAdapter emergencyContactsAdapter;
+    private MedicationsAdapter medicationsAdapter;
+    private PastSurgeriesAdapter pastSurgeriesAdapter;
+    private InsuranceAdapter insuranceAdapter;
+    
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_patient_details);
 
-        // Enable back button in action bar
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Patient Details");
-        }
-
-        sessionManager = new SessionManager(this);
-        initViews();
+        initializeViews();
         setupRecyclerViews();
 
-        String patientId = getIntent().getStringExtra("patient_id");
-        if (patientId != null) {
-            fetchPatientDetails(patientId);
+        String userId = getIntent().getStringExtra("userId");
+        if (userId != null) {
+            loadPatientDetails(userId);
         } else {
-            showError("Patient ID not found");
+            Toast.makeText(this, "User ID not provided", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
 
-    private void initViews() {
-        // Basic Information
-        nameText = findViewById(R.id.patientName);
-        ageText = findViewById(R.id.patientAge);
-        genderText = findViewById(R.id.patientGender);
-        bloodTypeText = findViewById(R.id.patientBloodType);
-        heightText = findViewById(R.id.patientHeight);
-        weightText = findViewById(R.id.patientWeight);
+    private void initializeViews() {
+        sessionManager = new SessionManager(this);
+        
+        // Initialize TextViews
+        patientName = findViewById(R.id.patientName);
+        patientAge = findViewById(R.id.patientAge);
+        patientGender = findViewById(R.id.patientGender);
+        patientBloodType = findViewById(R.id.patientBloodType);
+        allergiesText = findViewById(R.id.allergiesText);
+        dietaryRestrictionsText = findViewById(R.id.dietaryRestrictionsText);
         organDonorText = findViewById(R.id.organDonorText);
+        culturalConsiderationsText = findViewById(R.id.culturalConsiderationsText);
+        
+        // Initialize RecyclerViews
+        emergencyContactsRecyclerView = findViewById(R.id.emergencyContactsRecyclerView);
+        medicationsRecyclerView = findViewById(R.id.medicationsRecyclerView);
+        pastSurgeriesRecyclerView = findViewById(R.id.pastSurgeriesRecyclerView);
+        insuranceRecyclerView = findViewById(R.id.insuranceRecyclerView);
 
-        // RecyclerViews
-        emergencyContactsRecycler = findViewById(R.id.emergencyContactsRecycler);
-        pastSurgeriesRecycler = findViewById(R.id.pastSurgeriesRecycler);
-        medicationsRecycler = findViewById(R.id.medicationsRecycler);
-
-        // ChipGroups
-        medicalHistoryChips = findViewById(R.id.medicalHistoryChips);
-        allergiesChips = findViewById(R.id.allergiesChips);
-        dietaryRestrictionsChips = findViewById(R.id.dietaryRestrictionsChips);
-        culturalConsiderationsChips = findViewById(R.id.culturalConsiderationsChips);
-
-        // Button and ProgressBar
-        requestBloodButton = findViewById(R.id.requestBloodButton);
-        progressBar = findViewById(R.id.progressBar);
-
-        requestBloodButton.setOnClickListener(v -> showBloodRequestDialog());
+        insuranceAdapter = new InsuranceAdapter();
+        insuranceRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        insuranceRecyclerView.setAdapter(insuranceAdapter);
     }
 
     private void setupRecyclerViews() {
-        // Emergency Contacts RecyclerView
-        emergencyContactAdapter = new EmergencyContactAdapter();
-        emergencyContactsRecycler.setAdapter(emergencyContactAdapter);
-        emergencyContactsRecycler.setLayoutManager(new LinearLayoutManager(this));
-        emergencyContactsRecycler.setNestedScrollingEnabled(false);
+        // Setup Emergency Contacts RecyclerView
+        emergencyContactsAdapter = new EmergencyContactsAdapter();
+        emergencyContactsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        emergencyContactsRecyclerView.setAdapter(emergencyContactsAdapter);
 
-        // Past Surgeries RecyclerView
-        pastSurgeryAdapter = new PastSurgeryAdapter();
-        pastSurgeriesRecycler.setAdapter(pastSurgeryAdapter);
-        pastSurgeriesRecycler.setLayoutManager(new LinearLayoutManager(this));
-        pastSurgeriesRecycler.setNestedScrollingEnabled(false);
+        // Setup Medications RecyclerView
+        medicationsAdapter = new MedicationsAdapter();
+        medicationsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        medicationsRecyclerView.setAdapter(medicationsAdapter);
 
-        // Medications RecyclerView
-        medicationAdapter = new MedicationAdapter();
-        medicationsRecycler.setAdapter(medicationAdapter);
-        medicationsRecycler.setLayoutManager(new LinearLayoutManager(this));
-        medicationsRecycler.setNestedScrollingEnabled(false);
+        // Setup Past Surgeries RecyclerView
+        pastSurgeriesAdapter = new PastSurgeriesAdapter();
+        pastSurgeriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        pastSurgeriesRecyclerView.setAdapter(pastSurgeriesAdapter);
     }
 
-    private void fetchPatientDetails(String patientId) {
-        showLoading(true);
-        String token = "Bearer " + sessionManager.getToken();
-
-        RetrofitClient.getInstance()
-                .getApiService()
-                .getPatientDetails(token, patientId)
-                .enqueue(new Callback<PatientDetails>() {
-                    @Override
-                    public void onResponse(Call<PatientDetails> call, Response<PatientDetails> response) {
-                        showLoading(false);
-                        if (response.isSuccessful() && response.body() != null) {
-                            patientDetails = response.body();
-                            updateUI(patientDetails);
-                        } else {
-                            showError("Failed to fetch patient details: " +
-                                    (response.errorBody() != null ? response.errorBody().toString() : "Unknown error"));
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<PatientDetails> call, Throwable t) {
-                        showLoading(false);
-                        showError("Network error: " + t.getMessage());
-                    }
-                });
-    }
-
-    private void updateUI(PatientDetails details) {
-        try {
-            // Basic Information
-            nameText.setText(details.getFullName());
-            ageText.setText(getString(R.string.age_format, details.getAge()));
-            genderText.setText(details.getGender().toString());
-            bloodTypeText.setText(details.getBloodType().toString());
-            heightText.setText(getString(R.string.height_format, details.getHeight()));
-            weightText.setText(getString(R.string.weight_format, details.getWeight()));
-            organDonorText.setText(getString(R.string.organ_donor_format,
-                    details.isOrganDonor() ? "Yes" : "No"));
-
-            // Emergency Contacts
-            if (details.getEmergencyContacts() != null && !details.getEmergencyContacts().isEmpty()) {
-                emergencyContactsRecycler.setVisibility(View.VISIBLE);
-                emergencyContactAdapter.setContacts(details.getEmergencyContacts());
-            } else {
-                emergencyContactsRecycler.setVisibility(View.GONE);
-            }
-
-            // Medical History
-            if (details.getMedicalHistory() != null && !details.getMedicalHistory().isEmpty()) {
-                updateChipGroup(medicalHistoryChips, details.getMedicalHistory());
-                medicalHistoryChips.setVisibility(View.VISIBLE);
-            } else {
-                medicalHistoryChips.setVisibility(View.GONE);
-            }
-
-            // Past Surgeries
-            if (details.getPastSurgeries() != null && !details.getPastSurgeries().isEmpty()) {
-                pastSurgeriesRecycler.setVisibility(View.VISIBLE);
-                pastSurgeryAdapter.setSurgeries(details.getPastSurgeries());
-            } else {
-                pastSurgeriesRecycler.setVisibility(View.GONE);
-            }
-
-            // Current Medications
-            if (details.getCurrentMedications() != null && !details.getCurrentMedications().isEmpty()) {
-                medicationsRecycler.setVisibility(View.VISIBLE);
-                medicationAdapter.setMedications(details.getCurrentMedications());
-            } else {
-                medicationsRecycler.setVisibility(View.GONE);
-            }
-
-            // Allergies
-            if (details.getAllergies() != null && !details.getAllergies().isEmpty()) {
-                updateChipGroup(allergiesChips, details.getAllergies());
-                allergiesChips.setVisibility(View.VISIBLE);
-            } else {
-                allergiesChips.setVisibility(View.GONE);
-            }
-
-            // Dietary Restrictions
-            if (details.getDietaryRestrictions() != null && !details.getDietaryRestrictions().isEmpty()) {
-                updateChipGroup(dietaryRestrictionsChips, details.getDietaryRestrictions());
-                dietaryRestrictionsChips.setVisibility(View.VISIBLE);
-            } else {
-                dietaryRestrictionsChips.setVisibility(View.GONE);
-            }
-
-            // Cultural Considerations
-            if (details.getCulturalConsiderations() != null && !details.getCulturalConsiderations().isEmpty()) {
-                updateChipGroup(culturalConsiderationsChips, details.getCulturalConsiderations());
-                culturalConsiderationsChips.setVisibility(View.VISIBLE);
-            } else {
-                culturalConsiderationsChips.setVisibility(View.GONE);
-            }
-        } catch (Exception e) {
-            showError("Error updating UI: " + e.getMessage());
-        }
-    }
-
-    private void updateChipGroup(ChipGroup chipGroup, List<String> items) {
-        chipGroup.removeAllViews();
-        for (String item : items) {
-            Chip chip = new Chip(this);
-            chip.setText(item);
-            chip.setClickable(false);
-            chip.setCheckable(false);
-            chipGroup.addView(chip);
-        }
-    }
-
-    private void showBloodRequestDialog() {
-        if (patientDetails == null) {
-            showError("Patient details not available");
+    private void loadPatientDetails(String userId) {
+        String token = sessionManager.getToken();
+        if (token == null) {
+            Toast.makeText(this, "Authentication token not found", Toast.LENGTH_SHORT).show();
+            finish();
             return;
         }
 
-        new AlertDialog.Builder(this)
-                .setTitle("Blood Request")
-                .setMessage("Do you want to create a blood request for " +
-                        patientDetails.getFullName() + " (Blood Type: " +
-                        patientDetails.getBloodType() + ")?")
-                .setPositiveButton("Yes", (dialog, which) -> createBloodRequest())
-                .setNegativeButton("No", null)
-                .show();
-    }
+        String authToken = token.startsWith("Bearer ") ? token : "Bearer " + token;
 
-    private void createBloodRequest() {
-        showLoading(true);
-        String token = "Bearer " + sessionManager.getToken();
-
-        BloodRequest requestDTO = new BloodRequest(
-                sessionManager.getUserId(),
-                patientDetails.getId(),
-                patientDetails.getBloodType(),
-                "PENDING"
-        );
-
+        // Load patient details
         RetrofitClient.getInstance()
                 .getApiService()
-                .createBloodRequest(token, requestDTO)
-                .enqueue(new Callback<BloodRequest>() {
+                .getPatientDetailsByUserId(authToken, userId)
+                .enqueue(new Callback<PatientResponse>() {
                     @Override
-                    public void onResponse(Call<BloodRequest> call, Response<BloodRequest> response) {
-                        showLoading(false);
-                        if (response.isSuccessful()) {
-                            showSuccess("Blood request created successfully");
+                    public void onResponse(Call<PatientResponse> call, Response<PatientResponse> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            updatePatientUI(response.body());
+                            // Load insurance details after patient details are loaded
+                            loadInsuranceDetails(userId, authToken);
                         } else {
-                            showError("Failed to create blood request: " +
-                                    (response.errorBody() != null ? response.errorBody().toString() : "Unknown error"));
+                            Toast.makeText(PatientDetailsActivity.this,
+                                    "Failed to load patient details: " + response.code(),
+                                    Toast.LENGTH_SHORT).show();
                         }
                     }
 
                     @Override
-                    public void onFailure(Call<BloodRequest> call, Throwable t) {
-                        showLoading(false);
-                        showError("Network error: " + t.getMessage());
+                    public void onFailure(Call<PatientResponse> call, Throwable t) {
+                        Toast.makeText(PatientDetailsActivity.this,
+                                "Error loading patient details: " + t.getMessage(),
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    private void showLoading(boolean show) {
-        if (progressBar != null) {
-            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-        }
-        if (requestBloodButton != null) {
-            requestBloodButton.setEnabled(!show);
+    private void loadInsuranceDetails(String userId, String authToken) {
+        RetrofitClient.getInstance()
+                .getApiService()
+                .getInsurancesByUserId(authToken, userId)
+                .enqueue(new Callback<List<InsuranceResponse>>() {
+                    @Override
+                    public void onResponse(Call<List<InsuranceResponse>> call,
+                                         Response<List<InsuranceResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            updateInsuranceUI(response.body());
+                        } else {
+                            Toast.makeText(PatientDetailsActivity.this,
+                                    "Failed to load insurance details: " + response.code(),
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<InsuranceResponse>> call, Throwable t) {
+                        Toast.makeText(PatientDetailsActivity.this,
+                                "Error loading insurance details: " + t.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void updateInsuranceUI(List<InsuranceResponse> insurances) {
+        if (insurances != null && !insurances.isEmpty()) {
+            insuranceAdapter.setInsurances(insurances);
+            insuranceRecyclerView.setVisibility(View.VISIBLE);
+        } else {
+            insuranceRecyclerView.setVisibility(View.GONE);
+            // Show "No insurance information available" message if you have a TextView for it
+            TextView noInsuranceText = findViewById(R.id.noInsuranceText);
+            if (noInsuranceText != null) {
+                noInsuranceText.setVisibility(View.VISIBLE);
+            }
         }
     }
 
-    private void showError(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-    }
+    private void updatePatientUI(PatientResponse patient) {
+        // Update basic information
+        patientName.setText(patient.getFullName());
+        patientAge.setText("Age: " + patient.getAge());
+        patientGender.setText("Gender: " + patient.getGender());
+        patientBloodType.setText("Blood Type: " + patient.getBloodType());
 
-    private void showSuccess(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-        setResult(RESULT_OK);
-        finish();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-            return true;
+        // Update lists
+        if (patient.getEmergencyContacts() != null) {
+            emergencyContactsAdapter.setContacts(patient.getEmergencyContacts());
         }
-        return super.onOptionsItemSelected(item);
+
+        if (patient.getCurrentMedications() != null) {
+            medicationsAdapter.setMedications(patient.getCurrentMedications());
+        }
+
+        if (patient.getPastSurgeries() != null) {
+            pastSurgeriesAdapter.setSurgeries(patient.getPastSurgeries());
+        }
+
+        // Update additional information
+        if (patient.getAllergies() != null && !patient.getAllergies().isEmpty()) {
+            allergiesText.setText("Allergies:\n• " + TextUtils.join("\n• ", patient.getAllergies()));
+        } else {
+            allergiesText.setText("No known allergies");
+        }
+
+        if (patient.getDietaryRestrictions() != null && !patient.getDietaryRestrictions().isEmpty()) {
+            dietaryRestrictionsText.setText("Dietary Restrictions:\n• " + 
+                    TextUtils.join("\n• ", patient.getDietaryRestrictions()));
+        } else {
+            dietaryRestrictionsText.setText("No dietary restrictions");
+        }
+
+        organDonorText.setText("Organ Donor: " + (patient.isOrganDonor() ? "Yes" : "No"));
+
+        if (patient.getCulturalConsiderations() != null && !patient.getCulturalConsiderations().isEmpty()) {
+            culturalConsiderationsText.setText("Cultural Considerations:\n• " + 
+                    TextUtils.join("\n• ", patient.getCulturalConsiderations()));
+        } else {
+            culturalConsiderationsText.setText("No cultural considerations specified");
+        }
     }
 }
