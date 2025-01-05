@@ -53,4 +53,4 @@ public class EmergencyContactsAdapter extends RecyclerView.Adapter<EmergencyCont
             phoneText.setText(contact.getPhoneNumber());
         }
     }
-} 
+}

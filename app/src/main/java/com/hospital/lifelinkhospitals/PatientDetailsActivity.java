@@ -51,14 +51,12 @@ public class PatientDetailsActivity extends AppCompatActivity {
 
         String userId = getIntent().getStringExtra("userId");
         if (userId == null) {
-            Toast.makeText(this, "No user ID provided", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
 
         String token = sessionManager.getToken();
         if (token == null) {
-            Toast.makeText(this, "No authentication token found", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -122,15 +120,13 @@ public class PatientDetailsActivity extends AppCompatActivity {
                         if (response.isSuccessful() && response.body() != null) {
                             updateUI(response.body());
                         } else {
-                            Toast.makeText(PatientDetailsActivity.this,
-                                "Failed to load patient details", Toast.LENGTH_SHORT).show();
+
                         }
                     }
 
                     @Override
                     public void onFailure(Call<PatientResponse> call, Throwable t) {
-                        Toast.makeText(PatientDetailsActivity.this,
-                            "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+
                     }
                 });
     }
@@ -151,8 +147,7 @@ public class PatientDetailsActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<List<InsuranceResponse>> call, Throwable t) {
-                        Toast.makeText(PatientDetailsActivity.this,
-                            "Failed to load insurance details", Toast.LENGTH_SHORT).show();
+
                     }
                 });
     }

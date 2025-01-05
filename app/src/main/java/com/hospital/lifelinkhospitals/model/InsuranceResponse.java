@@ -1,7 +1,6 @@
 package com.hospital.lifelinkhospitals.model;
 
 import com.google.gson.annotations.SerializedName;
-import java.time.LocalDate;
 
 public class InsuranceResponse {
     @SerializedName("id")
@@ -26,10 +25,10 @@ public class InsuranceResponse {
     private String relationshipToPolicyHolder;
     
     @SerializedName("startDate")
-    private LocalDate startDate;
+    private String startDate;
     
     @SerializedName("endDate")
-    private LocalDate endDate;
+    private String endDate;
     
     @SerializedName("planType")
     private String planType;
@@ -54,8 +53,8 @@ public class InsuranceResponse {
     public String getInsuranceType() { return insuranceType; }
     public String getPolicyHolderName() { return policyHolderName; }
     public String getRelationshipToPolicyHolder() { return relationshipToPolicyHolder; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getEndDate() { return endDate; }
+    public String getStartDate() { return startDate; }
+    public String getEndDate() { return endDate; }
     public String getPlanType() { return planType; }
     public boolean isCoversEmergencyService() { return coversEmergencyService; }
     public boolean isCoversAmbulanceService() { return coversAmbulanceService; }

@@ -57,7 +57,6 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
         if (userId != null) {
             getHospitalId(userId);
         } else {
-            Toast.makeText(this, "No User ID found!", Toast.LENGTH_LONG).show();
             showEmptyState();
         }
     }
@@ -82,13 +81,11 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
             }
         });
 
-        Toast.makeText(this, "Views initialized", Toast.LENGTH_SHORT).show();
     }
 
     private void getHospitalId(String userId) {
         String token = sessionManager.getToken();
         if (token == null) {
-            Toast.makeText(this, "No token found!", Toast.LENGTH_LONG).show();
             showEmptyState();
             return;
         }
@@ -105,9 +102,7 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
                         if (response.isSuccessful() && response.body() != null) {
                             Hospital hospital = response.body();
                             String hospitalId = hospital.getId();
-                            Toast.makeText(Dashboard.this, 
-                                "Got Hospital ID: " + hospitalId, 
-                                Toast.LENGTH_SHORT).show();
+
                             
                             // Save hospital ID to session
                             sessionManager.saveHospitalId(hospitalId);
@@ -115,9 +110,6 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
                             // Now load the patients
                             loadIncomingPatients(hospitalId);
                         } else {
-                            Toast.makeText(Dashboard.this, 
-                                "Failed to get hospital ID. Code: " + response.code(), 
-                                Toast.LENGTH_LONG).show();
                             showEmptyState();
                             finishLoading();
                         }
@@ -125,9 +117,6 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
 
                     @Override
                     public void onFailure(Call<Hospital> call, Throwable t) {
-                        Toast.makeText(Dashboard.this, 
-                            "Error getting hospital ID: " + t.getMessage(), 
-                            Toast.LENGTH_LONG).show();
                         showEmptyState();
                         finishLoading();
                     }
@@ -137,14 +126,12 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
     private void loadIncomingPatients(String hospitalId) {
         String token = sessionManager.getToken();
         if (token == null) {
-            Toast.makeText(this, "No token found!", Toast.LENGTH_LONG).show();
             showEmptyState();
             return;
         }
 
         String authToken = token.startsWith("Bearer ") ? token : "Bearer " + token;
-        Toast.makeText(this, "Token: " + authToken.substring(0, 20) + "...", Toast.LENGTH_SHORT).show();
-        Toast.makeText(this, "Hospital ID: " + hospitalId, Toast.LENGTH_SHORT).show();
+
 
         showLoading();
         RetrofitClient.getInstance()
@@ -154,32 +141,18 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
                     @Override
                     public void onResponse(Call<List<IncomingPatient>> call, Response<List<IncomingPatient>> response) {
                         // Print the raw response for debugging
-                        try {
-                            if (response.errorBody() != null) {
-                                Toast.makeText(Dashboard.this, 
-                                    "Error body: " + response.errorBody().string(), 
-                                    Toast.LENGTH_LONG).show();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (response.errorBody() != null) {
+
                         }
 
-                        Toast.makeText(Dashboard.this, 
-                            "Response code: " + response.code(), 
-                            Toast.LENGTH_SHORT).show();
 
                         if (response.isSuccessful() && response.body() != null) {
                             List<IncomingPatient> patients = response.body();
                             
                             if (patients.isEmpty()) {
-                                Toast.makeText(Dashboard.this, 
-                                    "No patients in response", 
-                                    Toast.LENGTH_LONG).show();
+
                                 showEmptyState();
                             } else {
-                                Toast.makeText(Dashboard.this, 
-                                    "Received " + patients.size() + " patients", 
-                                    Toast.LENGTH_SHORT).show();
                                 hideEmptyState();
                                 patientsAdapter.setPatients(patients);
                                 for (IncomingPatient patient : patients) {
@@ -187,10 +160,6 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
                                 }
                             }
                         } else {
-                            Toast.makeText(Dashboard.this, 
-                                "API Error: " + response.code() + 
-                                " - " + response.message(), 
-                                Toast.LENGTH_LONG).show();
                             showEmptyState();
                         }
                         finishLoading();
@@ -198,9 +167,6 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
 
                     @Override
                     public void onFailure(Call<List<IncomingPatient>> call, Throwable t) {
-                        Toast.makeText(Dashboard.this, 
-                            "Network Error: " + t.getMessage(), 
-                            Toast.LENGTH_LONG).show();
                         t.printStackTrace(); // Print stack trace to logcat
                         showEmptyState();
                         finishLoading();
@@ -270,16 +236,13 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
             Call<List<IncomingPatient>> call = RetrofitClient.getInstance()
                     .getApiService()
                     .getIncomingPatients("Bearer " + token, hospitalId);
-            
-            Toast.makeText(this, 
-                "API URL: " + call.request().url(), 
-                Toast.LENGTH_LONG).show();
+
         }
     }
 
     @Override
     public void onPatientClick(IncomingPatient patient) {
-        Toast.makeText(this, "Clicked on patient: " + patient.getId(), Toast.LENGTH_SHORT).show();
+
         Intent intent = new Intent(this, PatientDetailsActivity.class);
         intent.putExtra("userId", patient.getUserId());
         startActivity(intent);
@@ -293,26 +256,20 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
                     @Override
                     public void onResponse(Call<PatientResponse> call, Response<PatientResponse> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            Toast.makeText(Dashboard.this, 
-                                "Loaded details for patient: " + patient.getUserId(), 
-                                Toast.LENGTH_SHORT).show();
+
                             patient.setPatientDetails(response.body());
                             patientsAdapter.notifyDataSetChanged();
                             
                             // Load insurance details after patient details
                             loadPatientInsurance(patient, authToken);
                         } else {
-                            Toast.makeText(Dashboard.this, 
-                                "Failed to load patient details. Code: " + response.code(), 
-                                Toast.LENGTH_SHORT).show();
+
                         }
                     }
 
                     @Override
                     public void onFailure(Call<PatientResponse> call, Throwable t) {
-                        Toast.makeText(Dashboard.this, 
-                            "Error loading patient details: " + t.getMessage(), 
-                            Toast.LENGTH_SHORT).show();
+
                     }
                 });
     }
@@ -326,23 +283,16 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
                     public void onResponse(Call<List<InsuranceResponse>> call,
                                          Response<List<InsuranceResponse>> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            Toast.makeText(Dashboard.this, 
-                                "Loaded insurance for patient: " + patient.getUserId(), 
-                                Toast.LENGTH_SHORT).show();
+
                             patient.setInsurances(response.body());
                             patientsAdapter.notifyDataSetChanged();
                         } else {
-                            Toast.makeText(Dashboard.this, 
-                                "Failed to load insurance. Code: " + response.code(), 
-                                Toast.LENGTH_SHORT).show();
                         }
                     }
 
                     @Override
                     public void onFailure(Call<List<InsuranceResponse>> call, Throwable t) {
-                        Toast.makeText(Dashboard.this, 
-                            "Error loading insurance: " + t.getMessage(), 
-                            Toast.LENGTH_SHORT).show();
+
                     }
                 });
     }
