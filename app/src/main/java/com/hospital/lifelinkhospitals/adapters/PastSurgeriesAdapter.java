@@ -53,4 +53,4 @@ public class PastSurgeriesAdapter extends RecyclerView.Adapter<PastSurgeriesAdap
             surgeryDateText.setText(surgery.getApproximateDate());
         }
     }
-} 
+}

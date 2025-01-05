@@ -72,8 +72,9 @@ public class SessionManager {
         editor.apply();
     }
 
-    public void updateHospitalData(String hospitalId){
+    public void saveHospitalId(String hospitalId) {
         editor.putString(HOSPITAL_ID, hospitalId);
+        editor.apply();
     }
 
     /**

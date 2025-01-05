@@ -11,6 +11,9 @@ public class IncomingPatient {
     @SerializedName("userId")
     private String userId;
 
+    @SerializedName("hospitalId")
+    private String hospitalId;
+
     private PatientResponse patientDetails;
     private List<InsuranceResponse> insurances;
 
@@ -36,5 +39,13 @@ public class IncomingPatient {
 
     public void setInsurances(List<InsuranceResponse> insurances) {
         this.insurances = insurances;
+    }
+
+    public String getHospitalId() {
+        return hospitalId;
+    }
+
+    public void setHospitalId(String hospitalId) {
+        this.hospitalId = hospitalId;
     }
 }

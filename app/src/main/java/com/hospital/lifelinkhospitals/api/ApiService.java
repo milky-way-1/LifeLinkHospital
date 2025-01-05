@@ -72,13 +72,13 @@ public interface ApiService {
             @Path("userId") String userId,
             @Header("Authorization") String token);
 
-    @GET("patient/{userId}")
+    @GET("api/hospital/patient/info/{userId}")
     Call<PatientResponse> getPatientDetailsByUserId(
         @Header("Authorization") String token,
         @Path("userId") String userId
     );
 
-    @GET("patient/insurance/{userId}")
+    @GET("api/hospital/patient/insurance/{userId}")
     Call<List<InsuranceResponse>> getInsurancesByUserId(
         @Header("Authorization") String token,
         @Path("userId") String userId

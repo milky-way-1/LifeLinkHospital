@@ -46,7 +46,7 @@ public class InsuranceResponse {
     @SerializedName("lastUpdatedAt")
     private String lastUpdatedAt;
 
-    // Add getters for all fields
+    // Getters
     public String getId() { return id; }
     public String getInsuranceProviderName() { return insuranceProviderName; }
     public String getPolicyNumber() { return policyNumber; }

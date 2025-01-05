@@ -4,12 +4,9 @@ public class MedicationResponse {
     private String medicationName;
     private String dosage;
 
-    // Getters and setters
+    public String getMedicationName() { return medicationName; }
+    public void setMedicationName(String name) { this.medicationName = name; }
 
-    public String getMedicationName() {
-        return medicationName;
-    }
-    public String getDosage(){
-        return dosage;
-    }
+    public String getDosage() { return dosage; }
+    public void setDosage(String dosage) { this.dosage = dosage; }
 }

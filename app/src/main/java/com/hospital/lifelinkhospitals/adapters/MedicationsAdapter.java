@@ -39,17 +39,17 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        private final TextView medicationNameText;
+        private final TextView nameText;
         private final TextView dosageText;
 
         ViewHolder(View itemView) {
             super(itemView);
-            medicationNameText = itemView.findViewById(R.id.medicationName);
+            nameText = itemView.findViewById(R.id.medicationName);
             dosageText = itemView.findViewById(R.id.medicationDosage);
         }
 
         void bind(MedicationResponse medication) {
-            medicationNameText.setText(medication.getMedicationName());
+            nameText.setText(medication.getMedicationName());
             dosageText.setText(medication.getDosage());
         }
     }

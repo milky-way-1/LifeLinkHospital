@@ -54,6 +54,9 @@ public class PatientResponse {
     
     @SerializedName("lastUpdatedAt")
     private String lastUpdatedAt;
+    
+    @SerializedName("insurance")
+    private InsuranceResponse insurance;
 
     // Add getters for all fields
     public String getId() { return id; }
@@ -73,4 +76,6 @@ public class PatientResponse {
     public List<String> getCulturalConsiderations() { return culturalConsiderations; }
     public String getCreatedAt() { return createdAt; }
     public String getLastUpdatedAt() { return lastUpdatedAt; }
+    public InsuranceResponse getInsurance() { return insurance; }
+    public void setInsurance(InsuranceResponse insurance) { this.insurance = insurance; }
 } 
