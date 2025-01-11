@@ -44,6 +44,8 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
     private SwipeRefreshLayout swipeRefresh;
     private SessionManager sessionManager;
 
+    private MaterialButton registerHospitalButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +81,12 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
             if (hospitalId != null) {
                 loadIncomingPatients(hospitalId);
             }
+        });
+
+        registerHospitalButton = findViewById(R.id.registerHospitalButton);
+        registerHospitalButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Dashboard.this, HospitalRegistrationActivity.class);
+            startActivity(intent);
         });
 
     }
@@ -206,6 +214,12 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
             }
             if (emptyStateLayout != null) {
                 emptyStateLayout.setVisibility(View.VISIBLE);
+                // Check if hospital is not registered
+                if (sessionManager.getHospitalId() == null) {
+                    registerHospitalButton.setVisibility(View.VISIBLE);
+                } else {
+                    registerHospitalButton.setVisibility(View.GONE);
+                }
             }
             if (patientsRecyclerView != null) {
                 patientsRecyclerView.setVisibility(View.GONE);
@@ -295,5 +309,15 @@ public class Dashboard extends AppCompatActivity implements IncomingPatientsAdap
 
                     }
                 });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh data when returning from registration
+        String hospitalId = sessionManager.getHospitalId();
+        if (hospitalId != null) {
+            loadIncomingPatients(hospitalId);
+        }
     }
 }
