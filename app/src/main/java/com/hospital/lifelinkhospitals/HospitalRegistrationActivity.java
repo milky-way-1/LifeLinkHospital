@@ -247,6 +247,8 @@ public class HospitalRegistrationActivity extends AppCompatActivity {
         }
     }
 
+
+
     private List<String> getDepartments() {
         List<String> departments = new ArrayList<>();
         if (emergencyDeptCheck.isChecked()) departments.add("Emergency");
